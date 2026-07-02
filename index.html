@@ -475,6 +475,7 @@ input[type="file"]{display:none}
       <input type="hidden" id="eid">
       <div class="fg"><label class="flbl">Kode Agen</label><input class="finp" id="fkode" placeholder="Contoh: AGN001" autocomplete="off"></div>
       <div class="fg"><label class="flbl">Nama Lengkap</label><input class="finp" id="fnama" placeholder="Nama lengkap agen" autocomplete="off"></div>
+      <div class="fg"><label class="flbl">NIK <span style="color:var(--t3);font-weight:400">(16 digit)</span></label><input class="finp" id="fnik" placeholder="Nomor Induk Kependudukan" type="tel" maxlength="16" autocomplete="off"></div>
       <div class="fg"><label class="flbl">No. HP</label><input class="finp" id="fhp" placeholder="08xxxxxxxxxx" type="tel" autocomplete="off"></div>
       <div class="fg"><label class="flbl">No. Rekening</label><input class="finp" id="frek" placeholder="Nomor rekening bank" autocomplete="off"></div>
       <div class="fg"><label class="flbl">Alamat Email</label><input class="finp" id="femail" placeholder="email@domain.com" type="email" autocomplete="off"></div>
@@ -630,7 +631,7 @@ function initials(n){ return String(n||'?').split(' ').map(w=>w[0]).join('').sub
 function filter(q){
   if(!q) return agents;
   const qq=q.toLowerCase();
-  return agents.filter(a=>[a.nama,a.kode,a.email,a.userid,a.hp].some(v=>(v||'').toLowerCase().includes(qq)));
+  return agents.filter(a=>[a.nama,a.kode,a.nik,a.email,a.userid,a.hp].some(v=>(v||'').toLowerCase().includes(qq)));
 }
 
 function tableHTML(list){
@@ -638,6 +639,7 @@ function tableHTML(list){
   const rows = list.map((a,i)=>`<tr>
     <td style="text-align:center;color:var(--t3);font-size:12px;font-weight:600">${i+1}</td>
     <td class="nama">${esc(a.nama)}</td>
+    <td style="font-family:'Courier New',monospace;font-size:12px;letter-spacing:0.5px">${esc(a.nik||'-')}</td>
     <td class="kode">${esc(a.kode)}</td>
     <td>${esc(a.hp)}</td>
     <td>${esc(a.rek)}</td>
@@ -651,6 +653,7 @@ function tableHTML(list){
   return `<div class="tbl-wrap"><table class="tbl"><thead><tr>
     <th style="text-align:center;width:40px">No</th>
     <th>Nama</th>
+    <th>NIK</th>
     <th>Kode</th>
     <th>No. HP</th>
     <th>No. Rekening</th>
@@ -694,12 +697,14 @@ function saveAgent(){
     id: id||Date.now().toString(),
     kode: document.getElementById('fkode').value.trim(),
     nama: document.getElementById('fnama').value.trim(),
+    nik: document.getElementById('fnik').value.trim(),
     hp: document.getElementById('fhp').value.trim(),
     rek: document.getElementById('frek').value.trim(),
     email: document.getElementById('femail').value.trim(),
     userid: document.getElementById('fuserid').value.trim()
   };
   if(!d.kode||!d.nama){ toast('Kode dan Nama wajib diisi','err'); return; }
+  if(!d.nik||!/^\d{16}$/.test(d.nik)){ toast('NIK harus 16 digit angka','err'); return; }
   if(id){ const i=agents.findIndex(a=>a.id===id); if(i>-1) agents[i]=d; }
   else agents.unshift(d);
   persist(); closeM('m-add'); renderHome(); renderAgen();
@@ -711,6 +716,7 @@ function editAgent(id){
   document.getElementById('eid').value=a.id;
   document.getElementById('fkode').value=a.kode;
   document.getElementById('fnama').value=a.nama;
+  document.getElementById('fnik').value=a.nik||'';
   document.getElementById('fhp').value=a.hp;
   document.getElementById('frek').value=a.rek;
   document.getElementById('femail').value=a.email;
@@ -740,7 +746,7 @@ function handleCSV(inp){
     for(let i=1;i<lines.length;i++){
       const c=lines[i].split(',').map(x=>x.trim().replace(/^"|"$/g,''));
       if(c.length<6) continue;
-      importBuf.push({id:Date.now().toString()+i,kode:c[0],nama:c[1],hp:c[2],rek:c[3],email:c[4],userid:c[5]});
+      importBuf.push({id:Date.now().toString()+i,kode:c[0],nama:c[1],nik:c[2],hp:c[3],rek:c[4],email:c[5],userid:c[6]});
     }
     document.getElementById('impinfo').textContent=`${importBuf.length} agen siap diimport dari "${f.name}"`;
     document.getElementById('imprev').style.display='block';
@@ -758,7 +764,7 @@ function doImport(){
   toast(`Data berhasil diimport`,'ok');
 }
 function dlTemplate(){
-  const csv='kode_agen,nama,no_hp,no_rekening,email,userid\nAGN001,Nama Agen,08123456789,1234567890,email@domain.com,userid123';
+  const csv='kode_agen,nama,nik,no_hp,no_rekening,email,userid\nAGN001,Nama Agen,1234567890123456,08123456789,1234567890,email@domain.com,userid123';
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
   a.download='template_query.csv'; a.click();
@@ -813,7 +819,7 @@ function doLogout(){
 function openM(id){
   if(id==='m-add'&&!document.getElementById('eid').value){
     document.getElementById('m-add-title').textContent='Tambah Agen Baru';
-    ['fkode','fnama','fhp','frek','femail','fuserid'].forEach(f=>document.getElementById(f).value='');
+    ['fkode','fnama','fnik','fhp','frek','femail','fuserid'].forEach(f=>document.getElementById(f).value='');
   }
   document.getElementById(id).classList.add('on');
 }
